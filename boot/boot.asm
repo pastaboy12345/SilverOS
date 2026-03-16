@@ -60,6 +60,7 @@ section .text
 bits 32
 
 global _start
+global pml4_table
 extern kernel_main
 
 _start:

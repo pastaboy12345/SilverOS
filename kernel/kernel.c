@@ -13,15 +13,12 @@
 #include "../include/timer.h"
 #include "../include/pmm.h"
 #include "../include/heap.h"
+#include "../include/vmm.h"
 #include "../include/framebuffer.h"
-#include "../include/font.h"
 #include "../include/keyboard.h"
-#include "../include/mouse.h"
 #include "../include/keyboard.h"
 #include "../include/console.h"
-#include "../include/bootanim.h"
 #include "../include/silverfs.h"
-#include "../include/desktop.h"
 #include "../include/io.h"
 #include "../include/ata.h"
 #include "../include/rtc.h"
@@ -110,13 +107,13 @@ void kernel_main(uint64_t multiboot_info_addr, uint64_t magic) {
     pmm_init(total_mem, mmap_tag, (uint64_t)&_kernel_start, (uint64_t)&_kernel_end);
     kprintf("OK\n[INIT] HEAP...");
     heap_init((void *)HEAP_START, HEAP_SIZE);
+    kprintf("OK\n[INIT] VMM...");
+    vmm_init();
     kprintf("OK\n");
 
     /* ---- Phase 6: Input devices ---- */
     kprintf("[INIT] Keyboard...");
     keyboard_init();
-    kprintf("OK\n[INIT] Mouse...");
-    mouse_init();
     kprintf("OK\n");
 
     kprintf("[INIT] Enabling interrupts...");
@@ -156,180 +153,69 @@ void kernel_main(uint64_t multiboot_info_addr, uint64_t magic) {
     user_init();
     kprintf("[INIT] User system ready.\n");
 
-    /* ---- Phase 9: Boot Loader Menu ---- */
-    int selected = 1;
-    int boot_choice = 0;
-    while (boot_choice == 0) {
-        fb_fill_rect(0, 0, fb.width, fb.height, RGB(20, 20, 30));
-        font_draw_string(fb.width/2 - 70, fb.height/2 - 80, "SilverOS Boot Menu", RGB(220, 220, 240));
-
-        if (selected == 1) {
-            fb_fill_rect(fb.width/2 - 120, fb.height/2 - 30, 240, 24, RGB(50, 100, 200));
-        }
-        font_draw_string(fb.width/2 - 110, fb.height/2 - 26, "1. Start SilverOS Desktop", RGB(255, 255, 255));
-
-        if (selected == 2) {
-            fb_fill_rect(fb.width/2 - 120, fb.height/2 + 10, 240, 24, RGB(50, 100, 200));
-        }
-        font_draw_string(fb.width/2 - 110, fb.height/2 + 14, "2. Start Minimal Shell", RGB(255, 255, 255));
-
-        font_draw_string(fb.width/2 - 90, fb.height/2 + 70, "Use Up/Down and Enter", RGB(150, 150, 150));
-
-        fb_swap_buffers();
-
+    /* ---- Phase 10: Kernel Shell ---- */
+    serial_printf("\n[INIT] Starting minimal shell...\n");
+    
+    /* Set up full-screen console */
+    console_init();
+    console_clear();
+    
+    kprintf("SilverOS Kernel Shell\n");
+    kprintf("Type 'help' for commands.\n\n");
+    
+    serial_printf("\n=================================\n  SilverOS Kernel Ready!\n=================================\n\n");
+    
+    char input[256];
+    int pos = 0;
+    console_puts("> ");
+    
+    while (1) {
         if (keyboard_haschar()) {
-            unsigned char key = (unsigned char)keyboard_getchar_nb();
-            if (key == KEY_UP || key == KEY_DOWN) {
-                selected = (selected == 1) ? 2 : 1;
-            } else if (key == '\n' || key == KEY_ENTER) {
-                boot_choice = selected;
-            } else if (key == '1') {
-                boot_choice = 1;
-            } else if (key == '2') {
-                boot_choice = 2;
-            }
-        } else {
-            hlt();
-        }
-    }
-
-    if (boot_choice == 1) {
-        /* ---- Phase 10a: Desktop Mode ---- */
-        bootanim_play();
-        serial_printf("\n[INIT] Starting desktop environment...\n");
-        console_init();
-        
-        /* Instead of opening desktop instantly, show login screen */
-        desktop_init(); /* modified to handle login screen mode first */
-        
-        serial_printf("\n=================================\n  SilverOS Ready!\n=================================\n\n");
-        desktop_run(); /* Never returns */
-    } else {
-        /* ---- Phase 10b: Shell Mode ---- */
-        serial_printf("\n[INIT] Starting minimal shell...\n");
-        fb_fill_rect(0, 0, fb.width, fb.height, 0); /* Clear screen */
-        
-        /* Set up full-screen console */
-        console_init();
-        console_clear();
-        
-        /* Simple Login Loop for Text Shell */
-        bool logged_in = false;
-        while (!logged_in) {
-            console_puts("SilverOS Login\n");
-            console_puts("Username: ");
-            
-            char username[32];
-            int ulen = 0;
-            while (1) {
-                if (keyboard_haschar()) {
-                    char ch = keyboard_getchar_nb();
-                    if (ch == '\n') {
-                        username[ulen] = '\0';
-                        console_puts("\n");
-                        break;
-                    } else if (ch == '\b' && ulen > 0) {
-                        ulen--;
-                        console_puts("\b \b");
-                    } else if (ch >= 32 && ch < 127 && ulen < 31) {
-                        username[ulen++] = ch;
-                        char str[2] = {ch, 0};
-                        console_puts(str);
-                    }
-                }
-                fb_swap_buffers();
-                hlt();
-            }
-            
-            console_puts("Password: ");
-            char password[64];
-            int plen = 0;
-            while (1) {
-                if (keyboard_haschar()) {
-                    char ch = keyboard_getchar_nb();
-                    if (ch == '\n') {
-                        password[plen] = '\0';
-                        console_puts("\n");
-                        break;
-                    } else if (ch == '\b' && plen > 0) {
-                        plen--;
-                        console_puts("\b \b"); /* Clear the asterisk */
-                    } else if (ch >= 32 && ch < 127 && plen < 63) {
-                        password[plen++] = ch;
-                        console_puts("*"); /* Mask password */
-                    }
-                }
-                fb_swap_buffers();
-                hlt();
-            }
-            
-            if (user_login(username, password)) {
-                logged_in = true;
-                console_puts("Login successful.\n\n");
-            } else {
-                console_puts("Login failed. Try again.\n\n");
-            }
-        }
-        
-        console_puts("SilverOS Minimal Shell\n");
-        console_puts("Type 'help' for commands.\n\n");
-        
-        serial_printf("\n=================================\n  SilverOS Ready (Shell)!\n=================================\n\n");
-        
-        /* We'll loop here with a simple terminal */
-        char input[256];
-        int pos = 0;
-        console_puts("> ");
-        
-        while (1) {
-            if (keyboard_haschar()) {
-                char ch = keyboard_getchar_nb();
-                if (ch == '\n') {
-                    input[pos] = '\0';
-                    console_puts("\n");
-                    
-                    if (pos > 0) {
-                        /* Extremely basic builtin commands for shell mode */
-                        if (strcmp(input, "help") == 0) {
-                            console_puts("Commands: help, ls, clear, reboot\n");
-                        } else if (strcmp(input, "clear") == 0) {
-                            console_clear();
-                        } else if (strcmp(input, "ls") == 0) {
-                            silverfs_dirent_t entries[32];
-                            int n = silverfs_readdir("/", entries, 32);
-                            if (n <= 0) {
-                                console_puts("Directory empty or error.\n");
-                            } else {
-                                for(int i=0; i<n; i++) {
-                                    console_puts(entries[i].name);
-                                    console_puts("  ");
-                                }
-                                console_puts("\n");
-                            }
-                        } else if (strcmp(input, "reboot") == 0) {
-                            outb(0x64, 0xFE);
+            char ch = keyboard_getchar_nb();
+            if (ch == '\n') {
+                input[pos] = '\0';
+                console_puts("\n");
+                
+                if (pos > 0) {
+                    if (strcmp(input, "help") == 0) {
+                        console_puts("Commands: help, ls, clear, reboot\n");
+                    } else if (strcmp(input, "clear") == 0) {
+                        console_clear();
+                    } else if (strcmp(input, "ls") == 0) {
+                        silverfs_dirent_t entries[32];
+                        int n = silverfs_readdir("/", entries, 32);
+                        if (n <= 0) {
+                            console_puts("Directory empty or error.\n");
                         } else {
-                            console_puts("Unknown command: ");
-                            console_puts(input);
+                            for(int i=0; i<n; i++) {
+                                console_puts(entries[i].name);
+                                console_puts("  ");
+                            }
                             console_puts("\n");
                         }
+                    } else if (strcmp(input, "reboot") == 0) {
+                        outb(0x64, 0xFE);
+                    } else {
+                        console_puts("Unknown command: ");
+                        console_puts(input);
+                        console_puts("\n");
                     }
-                    pos = 0;
-                    console_puts("> ");
-                } else if (ch == '\b') {
-                    if (pos > 0) {
-                        pos--;
-                        console_puts("\b \b");
-                    }
-                } else if (ch >= 32 && ch < 127 && pos < 255) {
-                    input[pos++] = ch;
-                    char str[2] = {ch, 0};
-                    console_puts(str);
                 }
+                pos = 0;
+                console_puts("> ");
+            } else if (ch == '\b') {
+                if (pos > 0) {
+                    pos--;
+                    console_puts("\b \b");
+                }
+            } else if (ch >= 32 && ch < 127 && pos < 255) {
+                input[pos++] = ch;
+                char str[2] = {ch, 0};
+                console_puts(str);
             }
-            fb_swap_buffers();
-            hlt();
         }
+        fb_swap_buffers();
+        hlt();
     }
 
     /* Should never reach here */

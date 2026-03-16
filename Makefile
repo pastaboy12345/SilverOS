@@ -24,13 +24,13 @@ ISO_DIR  = $(BUILD)/iso
 ASM_SOURCES = boot/boot.asm kernel/isr.asm kernel/gdt_idt_flush.asm
 C_SOURCES   = kernel/kernel.c kernel/string.c kernel/serial.c \
               kernel/gdt.c kernel/idt.c kernel/pic.c kernel/timer.c \
-              kernel/pmm.c kernel/heap.c kernel/user.c kernel/pci.c \
+              kernel/pmm.c kernel/heap.c kernel/vmm.c kernel/user.c kernel/pci.c kernel/random.c kernel/stdlib.c \
               drivers/framebuffer.c drivers/font.c drivers/keyboard.c \
-              drivers/mouse.c drivers/bootanim.c drivers/console.c \
+              drivers/console.c \
               drivers/ata.c drivers/rtc.c drivers/rtl8139.c \
+              runtime/platform/platform.c runtime/libc/stdio.c \
               net/net.c net/ethernet.c net/arp.c net/ipv4.c net/icmp.c \
-              fs/silverfs.c \
-              desktop/desktop.c desktop/filebrowser.c
+              fs/silverfs.c
 
 # Object files
 ASM_OBJECTS = $(patsubst %.asm, $(BUILD)/%.o, $(ASM_SOURCES))
