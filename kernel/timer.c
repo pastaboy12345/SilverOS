@@ -41,3 +41,8 @@ void sleep_ms(uint32_t ms) {
 uint64_t timer_get_ticks(void) {
     return timer_ticks;
 }
+
+uint64_t timer_get_ms(void) {
+    if (timer_freq == 0) return 0;
+    return (timer_ticks * 1000) / timer_freq;
+}

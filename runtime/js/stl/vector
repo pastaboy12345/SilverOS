@@ -1,0 +1,33 @@
+#ifndef SILVEROS_STL_VECTOR
+#define SILVEROS_STL_VECTOR
+
+#include <stddef.h>
+
+namespace std {
+    template<typename T>
+    class vector {
+    public:
+        vector() : data_(nullptr), size_(0), capacity_(0) {}
+        ~vector() { if (data_) delete[] data_; }
+        void push_back(const T& val) {
+            if (size_ == capacity_) reserve(capacity_ == 0 ? 4 : capacity_ * 2);
+            data_[size_++] = val;
+        }
+        size_t size() const { return size_; }
+        T& operator[](size_t i) { return data_[i]; }
+        void reserve(size_t n) {
+            if (n <= capacity_) return;
+            T* new_data = new T[n];
+            for (size_t i = 0; i < size_; ++i) new_data[i] = data_[i];
+            if (data_) delete[] data_;
+            data_ = new_data;
+            capacity_ = n;
+        }
+    private:
+        T* data_;
+        size_t size_;
+        size_t capacity_;
+    };
+}
+
+#endif

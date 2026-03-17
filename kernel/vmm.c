@@ -74,3 +74,39 @@ void vmm_set_flags(uint64_t virt, uint64_t flags) {
     pt[pt_idx] = phys | flags | VMM_PRESENT;
     __asm__ volatile("invlpg (%0)" : : "r"(virt) : "memory");
 }
+
+static uint64_t next_vaddr = 0x40000000; // 1GB
+
+void *vmm_mmap(void *addr, size_t length, int prot, int flags) {
+    uint64_t vaddr = (uint64_t)addr;
+    
+    if (vaddr == 0) {
+        vaddr = next_vaddr;
+        next_vaddr += (length + 4095) & ~4095;
+    }
+
+    uint64_t vmm_flags = VMM_USER;
+    if (prot & PROT_WRITE) vmm_flags |= VMM_WRITABLE;
+    if (!(prot & PROT_EXEC)) vmm_flags |= VMM_NX;
+
+    for (size_t i = 0; i < length; i += 4096) {
+        uint64_t phys = (uint64_t)pmm_alloc_page();
+        if (!phys) return NULL; // Should rollback on failure, but simplified for now
+        vmm_map(vaddr + i, phys, vmm_flags);
+    }
+
+    return (void *)vaddr;
+}
+
+int vmm_mprotect(void *addr, size_t len, int prot) {
+    uint64_t vaddr = (uint64_t)addr;
+    uint64_t vmm_flags = VMM_USER;
+    if (prot & PROT_WRITE) vmm_flags |= VMM_WRITABLE;
+    if (!(prot & PROT_EXEC)) vmm_flags |= VMM_NX;
+
+    for (size_t i = 0; i < len; i += 4096) {
+        vmm_set_flags(vaddr + i, vmm_flags);
+    }
+
+    return 0;
+}

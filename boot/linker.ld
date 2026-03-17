@@ -25,6 +25,14 @@ SECTIONS
         *(.rodata.*)
     }
 
+    .init_array ALIGN(8) :
+    {
+        _init_array_start = .;
+        *(.init_array)
+        *(.init_array.*)
+        _init_array_end = .;
+    }
+
     .data ALIGN(4K) :
     {
         *(.data)

@@ -10,5 +10,6 @@ void  free(void *ptr);
 
 void  abort(void);
 void  exit(int status);
+double strtod(const char *nptr, char **endptr);
 
 #endif

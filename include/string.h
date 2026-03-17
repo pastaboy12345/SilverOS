@@ -19,7 +19,8 @@ char  *strchr(const char *s, int c);
 void   itoa(int64_t value, char *buf, int base);
 void   utoa(uint64_t value, char *buf, int base);
 
-typedef __builtin_va_list va_list;
+#include "stdarg.h"
+
 int    snprintf(char *buf, size_t size, const char *fmt, ...);
 int    vsnprintf(char *buf, size_t size, const char *fmt, va_list ap);
 

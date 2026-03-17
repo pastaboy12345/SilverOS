@@ -2,7 +2,6 @@
 #include "../../include/timer.h"
 #include "../../include/console.h"
 #include "../../include/random.h"
-#include "../../include/io.h"
 
 uint64_t platform_time_ms(void) {
     /* timer_ticks increments at 1000 Hz if initialized with 1000 */

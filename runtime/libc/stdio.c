@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include "../platform/platform.h"
 #include "../../include/string.h"
+#include "../../include/stdarg.h"
 
 int printf(const char *fmt, ...) {
     char buf[1024];

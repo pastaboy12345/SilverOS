@@ -7,13 +7,17 @@
 ASM      = nasm
 CC       = gcc
 LD       = ld
+CXX      = g++
 GRUB_MK  = grub-mkrescue
 
 # Flags
 ASMFLAGS = -f elf64
-CFLAGS   = -ffreestanding -mno-red-zone -mno-mmx -mno-sse -mno-sse2 \
+CFLAGS   = -ffreestanding -mno-red-zone \
            -mcmodel=kernel -Wall -Wextra -O2 -I include -std=gnu11 \
            -fno-stack-protector -fno-pic -fno-pie -c
+CXXFLAGS = -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti \
+           -mcmodel=kernel -Wall -Wextra -O2 -I runtime/js/stl -I include -I /mnt/dev/v8/include \
+           -std=gnu++20 -fno-stack-protector -fno-pic -fno-pie -c
 LDFLAGS  = -T boot/linker.ld -nostdlib -z max-page-size=0x1000
 
 # Directories
@@ -28,14 +32,18 @@ C_SOURCES   = kernel/kernel.c kernel/string.c kernel/serial.c \
               drivers/framebuffer.c drivers/font.c drivers/keyboard.c \
               drivers/console.c \
               drivers/ata.c drivers/rtc.c drivers/rtl8139.c \
-              runtime/platform/platform.c runtime/libc/stdio.c \
+              runtime/platform/platform.c \
+    runtime/libc/stdio.c runtime/libc/errno.c \
+    runtime/libc/sys/mman.c \
               net/net.c net/ethernet.c net/arp.c net/ipv4.c net/icmp.c \
               fs/silverfs.c
+CPP_SOURCES = runtime/js/v8_runtime.cpp runtime/js/v8_platform_silver.cpp
 
 # Object files
-ASM_OBJECTS = $(patsubst %.asm, $(BUILD)/%.o, $(ASM_SOURCES))
-C_OBJECTS   = $(patsubst %.c, $(BUILD)/%.o, $(C_SOURCES))
-OBJECTS     = $(ASM_OBJECTS) $(C_OBJECTS)
+C_OBJECTS = $(C_SOURCES:%.c=$(BUILD)/%.o)
+CPP_OBJECTS = $(CPP_SOURCES:%.cpp=$(BUILD)/%.o)
+ASM_OBJECTS = $(ASM_SOURCES:%.asm=$(BUILD)/%.o)
+OBJECTS = $(ASM_OBJECTS) $(C_OBJECTS) $(CPP_OBJECTS)
 
 # Output
 KERNEL   = $(BUILD)/silveros.bin
@@ -138,6 +146,14 @@ $(BUILD)/%.o: %.asm
 $(BUILD)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $<
+
+# C++ files
+$(BUILD)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -o $@ $<
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -o $@ $<
+
 
 # ============================================================================
 # Utility

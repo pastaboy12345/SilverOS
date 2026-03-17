@@ -1,0 +1,23 @@
+#ifndef SILVEROS_STL_FUNCTIONAL
+#define SILVEROS_STL_FUNCTIONAL
+
+namespace std {
+    template<typename T> class function;
+    template<typename R, typename... Args>
+    class function<R(Args...)> {
+    public:
+        function() : ptr(nullptr) {}
+        template<typename F>
+        function(F f) { (void)f; } // Dummy
+        R operator()(Args... args) const { 
+             // Dummy
+             static R r{};
+             return r;
+        }
+        explicit operator bool() const { return false; }
+    private:
+        void* ptr;
+    };
+}
+
+#endif

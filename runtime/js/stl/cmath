@@ -1,0 +1,27 @@
+#ifndef SILVEROS_STL_CMATH
+#define SILVEROS_STL_CMATH
+
+// Minimal cmath for V8
+extern "C" {
+    double floor(double x);
+    double ceil(double x);
+    double fabs(double x);
+    double sin(double x);
+    double cos(double x);
+    double pow(double x, double y);
+    double sqrt(double x);
+    double log(double x);
+}
+
+namespace std {
+    using ::floor;
+    using ::ceil;
+    using ::fabs;
+    using ::sin;
+    using ::cos;
+    using ::pow;
+    using ::sqrt;
+    using ::log;
+}
+
+#endif

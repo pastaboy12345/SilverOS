@@ -14,6 +14,7 @@
 #include "../include/pmm.h"
 #include "../include/heap.h"
 #include "../include/vmm.h"
+#include "../runtime/js/js_runtime.h"
 #include "../include/framebuffer.h"
 #include "../include/keyboard.h"
 #include "../include/keyboard.h"
@@ -22,6 +23,16 @@
 #include "../include/io.h"
 #include "../include/ata.h"
 #include "../include/rtc.h"
+#include "../include/v8_runtime.h"
+
+extern void (*_init_array_start []) (void);
+extern void (*_init_array_end []) (void);
+
+static void call_global_constructors(void) {
+    for (void (**p) (void) = _init_array_start; p < _init_array_end; ++p) {
+        (*p) ();
+    }
+}
 #include "../include/pci.h"
 #include "../include/rtl8139.h"
 #include "../include/net.h"
@@ -81,11 +92,13 @@ void kernel_main(uint64_t multiboot_info_addr, uint64_t magic) {
     /* ---- Phase 3: Early Graphics & Console ---- */
     if (fb_tag) {
         fb_init(fb_tag);
+        fb_fill_screen(0x000000);
         console_init();
         console_clear();
         kprintf("SilverOS Kernel starting...\n");
         kprintf("Video: %dx%d %d-bpp\n", fb_tag->framebuffer_width, fb_tag->framebuffer_height, fb_tag->framebuffer_bpp);
     }
+
 
     /* ---- Phase 4: Hardware initialization ---- */
     kprintf("[INIT] GDT...");
@@ -110,6 +123,15 @@ void kernel_main(uint64_t multiboot_info_addr, uint64_t magic) {
     kprintf("OK\n[INIT] VMM...");
     vmm_init();
     kprintf("OK\n");
+
+    /* Call C++ global constructors */
+    kprintf("[INIT] C++ Runtime...");
+    call_global_constructors();
+    kprintf("OK\n");
+
+    /* Verify C++ with a test call */
+    extern void v8_runtime_test(void);
+    v8_runtime_test();
 
     /* ---- Phase 6: Input devices ---- */
     kprintf("[INIT] Keyboard...");
@@ -152,6 +174,12 @@ void kernel_main(uint64_t multiboot_info_addr, uint64_t magic) {
     /* ---- Phase 9: User Login Info ---- */
     user_init();
     kprintf("[INIT] User system ready.\n");
+
+    /* ---- Phase JS: JS Runtime ---- */
+    kprintf("[INIT] V8 Platform...");
+    void* v8_platform = create_silver_platform();
+    kprintf("OK (addr: %p)\n", v8_platform);
+
 
     /* ---- Phase 10: Kernel Shell ---- */
     serial_printf("\n[INIT] Starting minimal shell...\n");

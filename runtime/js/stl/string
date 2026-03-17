@@ -1,0 +1,22 @@
+#ifndef SILVEROS_STL_STRING
+#define SILVEROS_STL_STRING
+
+#include <stddef.h>
+
+namespace std {
+    class string {
+    public:
+        string() : data_(nullptr), len_(0) {}
+        string(const char* s) : data_(nullptr), len_(0) {
+            if (!s) return;
+            // Simple constructor
+        }
+        const char* c_str() const { return data_ ? data_ : ""; }
+        size_t length() const { return len_; }
+    private:
+        char* data_;
+        size_t len_;
+    };
+}
+
+#endif

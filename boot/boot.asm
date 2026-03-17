@@ -208,11 +208,20 @@ long_mode_start:
     ; esi already has multiboot2 magic
     ; These are the first two args in SysV x86-64 ABI
 
-    ; Call kernel_main(multiboot_info_ptr, magic)
+    ; Enable SSE
+    mov rax, cr0
+    and ax, 0xFFFB      ; Clear CR0.EM
+    or ax, 0x0002       ; Set CR0.MP
+    mov cr0, rax
+    mov rax, cr4
+    or ax, 3 << 9       ; Set CR4.OSFXSR and CR4.OSXMMEXCPT
+    mov cr4, rax
+
+    ; Jump to kernel
     call kernel_main
 
-    ; If kernel_main returns, halt
-.hang:
+    ; Should never reach here
+.halt:
     cli
     hlt
-    jmp .hang
+    jmp .halt
