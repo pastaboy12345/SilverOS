@@ -6,11 +6,13 @@
 #include <Ultralight/platform/Surface.h>
 
 #include <chrono>
+#include <cstdlib>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
