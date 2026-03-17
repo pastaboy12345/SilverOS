@@ -1,0 +1,23 @@
+#ifndef SILVEROS_STL_INITIALIZER_LIST
+#define SILVEROS_STL_INITIALIZER_LIST
+
+#include <stddef.h>
+
+namespace std {
+
+template<typename T>
+class initializer_list {
+public:
+    constexpr initializer_list() : begin_(nullptr), size_(0) {}
+    constexpr initializer_list(const T* b, size_t s) : begin_(b), size_(s) {}
+    constexpr const T* begin() const { return begin_; }
+    constexpr const T* end() const { return begin_ + size_; }
+    constexpr size_t size() const { return size_; }
+private:
+    const T* begin_;
+    size_t size_;
+};
+
+} // namespace std
+
+#endif

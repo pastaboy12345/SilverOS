@@ -22,7 +22,9 @@ typedef uint8_t bool;
 #define false 0
 #endif
 
+#ifndef NULL
 #define NULL ((void*)0)
+#endif
 
 #define UINT8_MAX  0xFF
 #define UINT16_MAX 0xFFFF

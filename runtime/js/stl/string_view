@@ -1,0 +1,24 @@
+#ifndef SILVEROS_STL_STRING_VIEW
+#define SILVEROS_STL_STRING_VIEW
+
+#include <stddef.h>
+
+namespace std {
+
+class string_view {
+public:
+    constexpr string_view() : data_(nullptr), size_(0) {}
+    constexpr string_view(const char* s, size_t n) : data_(s), size_(n) {}
+
+    constexpr const char* data() const { return data_; }
+    constexpr size_t size() const { return size_; }
+    constexpr bool empty() const { return size_ == 0; }
+
+private:
+    const char* data_;
+    size_t size_;
+};
+
+} // namespace std
+
+#endif

@@ -1,0 +1,6 @@
+#ifndef SILVEROS_STL_CSTDINT
+#define SILVEROS_STL_CSTDINT
+
+#include <stdint.h>
+
+#endif

@@ -1,0 +1,17 @@
+#ifndef SILVEROS_STL_RANGES
+#define SILVEROS_STL_RANGES
+
+namespace std {
+namespace ranges {
+
+/* Extremely small stub: enough to satisfy V8's header usage in freestanding builds. */
+template<typename T>
+concept range = true;
+
+template<typename T>
+concept contiguous_range = true;
+
+} // namespace ranges
+} // namespace std
+
+#endif

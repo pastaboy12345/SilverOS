@@ -1,0 +1,24 @@
+#ifndef SILVEROS_STL_CONCEPTS
+#define SILVEROS_STL_CONCEPTS
+
+namespace std {
+    template<typename T, typename U>
+    concept same_as = __is_same(T, U);
+
+    template<typename Derived, typename Base>
+    concept derived_from = __is_base_of(Base, Derived);
+
+    template<typename T>
+    concept integral = true; // Simplified
+
+    template<typename T>
+    concept floating_point = true; // Simplified
+
+    template<typename T, typename U>
+    concept three_way_comparable_with = true;
+
+    template<typename T, typename U>
+    concept totally_ordered_with = true;
+}
+
+#endif

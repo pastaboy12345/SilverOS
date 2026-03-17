@@ -1,0 +1,14 @@
+#ifndef SILVEROS_STL_VARIANT
+#define SILVEROS_STL_VARIANT
+
+namespace std {
+
+template<typename... Ts>
+class variant {
+public:
+    variant() = default;
+};
+
+} // namespace std
+
+#endif

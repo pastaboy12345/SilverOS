@@ -7,6 +7,16 @@ namespace std {
     typedef decltype(nullptr) nullptr_t;
 
     template<typename T>
+    class allocator {
+    public:
+        using value_type = T;
+        allocator() noexcept {}
+        template<typename U> allocator(const allocator<U>&) noexcept {}
+        T* allocate(size_t n) { return static_cast<T*>(::operator new(n * sizeof(T))); }
+        void deallocate(T* p, size_t n) { (void)n; ::operator delete(p); }
+    };
+
+    template<typename T>
     class unique_ptr {
     public:
         constexpr unique_ptr() noexcept : ptr_(nullptr) {}
@@ -56,6 +66,57 @@ namespace std {
 
         void reset(T* p = nullptr) noexcept {
             if (ptr_) delete ptr_;
+            ptr_ = p;
+        }
+
+    private:
+        T* ptr_;
+        unique_ptr(const unique_ptr&) = delete;
+        unique_ptr& operator=(const unique_ptr&) = delete;
+        template<typename U> friend class unique_ptr;
+    };
+
+    /* Array specialization for `unique_ptr<T[]>` (needed by some V8 headers). */
+    template<typename T>
+    class unique_ptr<T[]> {
+    public:
+        constexpr unique_ptr() noexcept : ptr_(nullptr) {}
+        constexpr unique_ptr(nullptr_t) noexcept : ptr_(nullptr) {}
+        constexpr unique_ptr(int) noexcept : ptr_(nullptr) {}
+        explicit unique_ptr(T* p) noexcept : ptr_(p) {}
+
+        unique_ptr(unique_ptr&& other) noexcept : ptr_(other.release()) {}
+        template<typename U>
+        unique_ptr(unique_ptr<U[]>&& other) noexcept : ptr_(other.release()) {}
+
+        ~unique_ptr() { if (ptr_) delete[] ptr_; }
+
+        unique_ptr& operator=(unique_ptr&& other) noexcept {
+            if (static_cast<void*>(this) != static_cast<void*>(&other)) {
+                if (ptr_) delete[] ptr_;
+                ptr_ = other.release();
+            }
+            return *this;
+        }
+
+        unique_ptr& operator=(nullptr_t) noexcept {
+            if (ptr_) delete[] ptr_;
+            ptr_ = nullptr;
+            return *this;
+        }
+
+        T* get() const noexcept { return ptr_; }
+        T& operator[](size_t i) const { return ptr_[i]; }
+        explicit operator bool() const noexcept { return ptr_ != nullptr; }
+
+        T* release() noexcept {
+            T* p = ptr_;
+            ptr_ = nullptr;
+            return p;
+        }
+
+        void reset(T* p = nullptr) noexcept {
+            if (ptr_) delete[] ptr_;
             ptr_ = p;
         }
 

@@ -3,6 +3,10 @@
 
 #include "types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void *memset(void *dest, int val, size_t count);
 void *memcpy(void *dest, const void *src, size_t count);
 void *memmove(void *dest, const void *src, size_t count);
@@ -25,5 +29,9 @@ int    snprintf(char *buf, size_t size, const char *fmt, ...);
 int    vsnprintf(char *buf, size_t size, const char *fmt, va_list ap);
 
 int    atoi(const char *str);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

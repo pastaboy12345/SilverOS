@@ -1,0 +1,39 @@
+#ifndef SILVEROS_STL_COMPARE
+#define SILVEROS_STL_COMPARE
+
+namespace std {
+    struct strong_ordering {
+        int v;
+        static const strong_ordering less;
+        static const strong_ordering equal;
+        static const strong_ordering equivalent;
+        static const strong_ordering greater;
+
+        constexpr bool operator==(int zero) const noexcept { return v == zero; }
+        constexpr bool operator!=(int zero) const noexcept { return v != zero; }
+        constexpr bool operator<(int zero) const noexcept { return v < zero; }
+        constexpr bool operator<=(int zero) const noexcept { return v <= zero; }
+        constexpr bool operator>(int zero) const noexcept { return v > zero; }
+        constexpr bool operator>=(int zero) const noexcept { return v >= zero; }
+    };
+
+    inline constexpr strong_ordering strong_ordering::less = {-1};
+    inline constexpr strong_ordering strong_ordering::equal = {0};
+    inline constexpr strong_ordering strong_ordering::equivalent = {0};
+    inline constexpr strong_ordering strong_ordering::greater = {1};
+
+    struct partial_ordering {
+        int v;
+        static const partial_ordering less;
+        static const partial_ordering equivalent;
+        static const partial_ordering greater;
+        static const partial_ordering unordered;
+    };
+
+    inline constexpr partial_ordering partial_ordering::less = {-1};
+    inline constexpr partial_ordering partial_ordering::equivalent = {0};
+    inline constexpr partial_ordering partial_ordering::greater = {1};
+    inline constexpr partial_ordering partial_ordering::unordered = {2};
+}
+
+#endif

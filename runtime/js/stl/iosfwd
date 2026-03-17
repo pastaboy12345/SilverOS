@@ -1,0 +1,17 @@
+#ifndef SILVEROS_STL_IOSFWD
+#define SILVEROS_STL_IOSFWD
+
+namespace std {
+    template<typename CharT>
+    class char_traits;
+
+    template<typename T>
+    class allocator;
+
+    template<typename CharT, typename Traits = char_traits<CharT>, typename Allocator = allocator<CharT>>
+    class basic_string;
+
+    typedef basic_string<char> string;
+}
+
+#endif

@@ -1,18 +1,66 @@
 #ifndef SILVEROS_STL_STRING
 #define SILVEROS_STL_STRING
 
-#include <stddef.h>
+#include <string.h>
 
 namespace std {
     class string {
     public:
         string() : data_(nullptr), len_(0) {}
+        
         string(const char* s) : data_(nullptr), len_(0) {
-            if (!s) return;
-            // Simple constructor
+            if (s) {
+                len_ = strlen(s);
+                data_ = new char[len_ + 1];
+                for(size_t i = 0; i <= len_; i++) data_[i] = s[i];
+            }
         }
+
+        string(const string& other) : data_(nullptr), len_(0) {
+            if (other.data_) {
+                len_ = other.len_;
+                data_ = new char[len_ + 1];
+                for(size_t i = 0; i <= len_; i++) data_[i] = other.data_[i];
+            }
+        }
+
+        string(string&& other) noexcept : data_(other.data_), len_(other.len_) {
+            other.data_ = nullptr;
+            other.len_ = 0;
+        }
+
+        ~string() { if (data_) delete[] data_; }
+
+        string& operator=(const string& other) {
+            if (this != &other) {
+                if (data_) delete[] data_;
+                len_ = other.len_;
+                if (other.data_) {
+                    data_ = new char[len_ + 1];
+                    for(size_t i = 0; i <= len_; i++) data_[i] = other.data_[i];
+                } else {
+                    data_ = nullptr;
+                }
+            }
+            return *this;
+        }
+
+        string& operator=(string&& other) noexcept {
+            if (this != &other) {
+                if (data_) delete[] data_;
+                data_ = other.data_;
+                len_ = other.len_;
+                other.data_ = nullptr;
+                other.len_ = 0;
+            }
+            return *this;
+        }
+
         const char* c_str() const { return data_ ? data_ : ""; }
         size_t length() const { return len_; }
+        size_t size() const { return len_; }
+        bool empty() const { return len_ == 0; }
+
     private:
         char* data_;
         size_t len_;

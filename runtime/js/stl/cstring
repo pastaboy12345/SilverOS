@@ -1,0 +1,19 @@
+#ifndef SILVEROS_STL_CSTRING
+#define SILVEROS_STL_CSTRING
+
+#include <string.h>
+
+namespace std {
+using ::memcmp;
+using ::memcpy;
+using ::memmove;
+using ::memset;
+using ::strcat;
+using ::strchr;
+using ::strcmp;
+using ::strcpy;
+using ::strlen;
+using ::strncpy;
+} // namespace std
+
+#endif

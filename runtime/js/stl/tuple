@@ -1,0 +1,62 @@
+#ifndef SILVEROS_STL_TUPLE
+#define SILVEROS_STL_TUPLE
+
+#include "type_traits"
+#include "utility"
+
+namespace std {
+
+template<size_t I, typename T>
+struct tuple_leaf {
+    T value;
+    tuple_leaf() = default;
+    tuple_leaf(const T& v) : value(v) {}
+    tuple_leaf(T&& v) : value(std::move(v)) {}
+};
+
+template<typename IndexSeq, typename... Ts>
+struct tuple_impl;
+
+template<size_t... Is, typename... Ts>
+struct tuple_impl<integral_constant<size_t, 0> /*unused*/, Ts...> {};
+
+template<size_t... Is, typename... Ts>
+struct tuple_impl<integral_constant<size_t, 1> /*unused*/, Ts...> {};
+
+/* Minimal recursive tuple */
+template<typename... Ts>
+struct tuple;
+
+template<>
+struct tuple<> {
+    tuple() = default;
+};
+
+template<typename T0, typename... Rest>
+struct tuple<T0, Rest...> : tuple_leaf<0, T0>, tuple<Rest...> {
+    tuple() = default;
+    tuple(const T0& v0, const Rest&... rest)
+        : tuple_leaf<0, T0>(v0), tuple<Rest...>(rest...) {}
+};
+
+template<size_t I, typename... Ts>
+struct tuple_element;
+
+template<typename T0, typename... Rest>
+struct tuple_element<0, tuple<T0, Rest...>> { using type = T0; };
+
+template<size_t I, typename T0, typename... Rest>
+struct tuple_element<I, tuple<T0, Rest...>> { using type = typename tuple_element<I - 1, tuple<Rest...>>::type; };
+
+template<size_t I, typename... Ts>
+typename tuple_element<I, tuple<Ts...>>::type& get(tuple<Ts...>& t);
+
+template<size_t I, typename T0, typename... Rest>
+typename tuple_element<I, tuple<T0, Rest...>>::type& get(tuple<T0, Rest...>& t) {
+    if constexpr (I == 0) return static_cast<tuple_leaf<0, T0>&>(t).value;
+    else return get<I - 1>(static_cast<tuple<Rest...>&>(t));
+}
+
+} // namespace std
+
+#endif

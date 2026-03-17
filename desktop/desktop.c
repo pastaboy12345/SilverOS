@@ -163,12 +163,12 @@ static void draw_cursor(int mx, int my) {
         "XXXXXX.",
         "XXXXXXX.",
         "XXXXXXXX.",
-        "XXXXXX...",
-        "XX.XXX.",
-        "X..XXX.",
-        "....XXX.",
+        "XXXXXXXXX.",
         "...XXX.",
-        "....XX.",
+        "....XXX.",
+        ".....XXX.",
+        "......XXX.",
+        ".......XX.",
         ".....",
     };
 
@@ -552,8 +552,8 @@ static void draw_menu(void) {
     fb_draw_rect(mx, my, mw, mh, TASKBAR_BORDER);
 
     /* Menu items */
-    const char *items[] = {"File Browser", "Terminal", "About", "---", "Shutdown"};
-    int item_count = 5;
+    const char *items[] = {"File Browser", "Terminal", "Ultralight", "About", "---", "Shutdown"};
+    int item_count = 6;
 
     for (int i = 0; i < item_count; i++) {
         int iy = my + 6 + i * 28;
@@ -580,7 +580,11 @@ static void handle_menu_click(int mx, int my) {
                 terminal_open();
                 menu_open = false;
                 break;
-            case 2: /* About */
+            case 2: /* Ultralight */
+                ultralight_open("file:///home/user/index.html");
+                menu_open = false;
+                break;
+            case 3: /* About */
                 {
                     int about_id = window_create("About SilverOS", 250, 200, 400, 250);
                     if (about_id >= 0) {
@@ -590,7 +594,7 @@ static void handle_menu_click(int mx, int my) {
                 }
                 menu_open = false;
                 break;
-            case 4: /* Shutdown */
+            case 5: /* Shutdown */
                 serial_printf("[DESKTOP] Shutdown requested\n");
                 /* In QEMU, write to ACPI poweroff port */
                 outb(0x604, 0x2000 & 0xFF);
@@ -699,6 +703,24 @@ static void login_click_handler(int id, int mx, int my) {
     }
 }
 
+static void ensure_file_with_contents(const char *path, const char *data) {
+    silverfs_file_t file;
+
+    if (silverfs_open(path, &file) >= 0) {
+        silverfs_close(&file);
+        return;
+    }
+
+    if (silverfs_create(path, SILVERFS_TYPE_FILE) < 0) {
+        return;
+    }
+
+    if (silverfs_open(path, &file) >= 0) {
+        silverfs_write(&file, data, strlen(data));
+        silverfs_close(&file);
+    }
+}
+
 void desktop_init(void) {
     memset(windows, 0, sizeof(windows));
     window_count = 0;
@@ -713,19 +735,57 @@ void desktop_init(void) {
     silverfs_mkdir("/etc");
     silverfs_mkdir("/tmp");
 
-    silverfs_create("/etc/hostname", SILVERFS_TYPE_FILE);
-    silverfs_file_t f;
-    if (silverfs_open("/etc/hostname", &f) >= 0) {
-        silverfs_write(&f, "silveros", 8);
-        silverfs_close(&f);
-    }
-
-    silverfs_create("/home/user/readme.txt", SILVERFS_TYPE_FILE);
-    if (silverfs_open("/home/user/readme.txt", &f) >= 0) {
-        const char *msg = "Welcome to SilverOS!\nThis is your home directory.\nType 'help' in the terminal for commands.";
-        silverfs_write(&f, msg, strlen(msg));
-        silverfs_close(&f);
-    }
+    ensure_file_with_contents("/etc/hostname", "silveros");
+    ensure_file_with_contents("/home/user/readme.txt",
+                              "Welcome to SilverOS!\n"
+                              "This is your home directory.\n"
+                              "Type 'help' in the terminal for commands.");
+    ensure_file_with_contents("/home/user/index.html",
+                              "<!doctype html>\n"
+                              "<html>\n"
+                              "<head>\n"
+                              "  <meta charset=\"utf-8\">\n"
+                              "  <title>SilverOS Browser</title>\n"
+                              "  <style>\n"
+                              "    :root { color-scheme: dark; }\n"
+                              "    body {\n"
+                              "      margin: 0;\n"
+                              "      min-height: 100vh;\n"
+                              "      display: grid;\n"
+                              "      place-items: center;\n"
+                              "      font-family: sans-serif;\n"
+                              "      background: linear-gradient(160deg, #0c1325, #17304b 60%, #274d67);\n"
+                              "      color: #f4f7fb;\n"
+                              "    }\n"
+                              "    .card {\n"
+                              "      width: min(680px, calc(100vw - 48px));\n"
+                              "      padding: 32px;\n"
+                              "      border-radius: 24px;\n"
+                              "      background: rgba(10, 16, 28, 0.8);\n"
+                              "      border: 1px solid rgba(143, 188, 255, 0.25);\n"
+                              "      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);\n"
+                              "    }\n"
+                              "    h1 { margin: 0 0 12px; font-size: 40px; }\n"
+                              "    p { line-height: 1.6; color: #d5ddea; }\n"
+                              "    code {\n"
+                              "      padding: 2px 8px;\n"
+                              "      border-radius: 999px;\n"
+                              "      background: rgba(128, 176, 255, 0.14);\n"
+                              "    }\n"
+                              "  </style>\n"
+                              "</head>\n"
+                              "<body>\n"
+                              "  <section class=\"card\">\n"
+                              "    <h1>SilverOS + Ultralight</h1>\n"
+                              "    <p>If this page renders inside SilverOS, the Ultralight bridge is working.</p>\n"
+                              "    <p>Default path: <code>file:///home/user/index.html</code></p>\n"
+                              "    <p id=\"time\">Boot page ready.</p>\n"
+                              "  </section>\n"
+                              "  <script>\n"
+                              "    document.getElementById('time').textContent = 'Generated at ' + new Date().toString();\n"
+                              "  </script>\n"
+                              "</body>\n"
+                              "</html>\n");
 
     serial_printf("[DESKTOP] Initializing Login Screen...\n");
 

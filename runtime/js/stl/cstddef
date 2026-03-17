@@ -1,0 +1,12 @@
+#ifndef SILVEROS_STL_CSTDDEF
+#define SILVEROS_STL_CSTDDEF
+
+#include <stddef.h>
+
+namespace std {
+using ::size_t;
+using ::ptrdiff_t;
+typedef decltype(nullptr) nullptr_t;
+} // namespace std
+
+#endif

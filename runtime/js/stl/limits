@@ -1,0 +1,37 @@
+#ifndef SILVEROS_STL_LIMITS
+#define SILVEROS_STL_LIMITS
+
+#include <stdint.h>
+
+namespace std {
+    template<typename T>
+    struct numeric_limits {
+        static constexpr T min() noexcept { return 0; }
+        static constexpr T max() noexcept { return 0; }
+        static constexpr bool is_integer = false;
+        static constexpr int digits = 0;
+    };
+
+    template<> struct numeric_limits<int> {
+        static constexpr int min() noexcept { return -2147483647 - 1; }
+        static constexpr int max() noexcept { return 2147483647; }
+        static constexpr bool is_integer = true;
+        static constexpr int digits = 31;
+    };
+
+    template<> struct numeric_limits<unsigned int> {
+        static constexpr unsigned int min() noexcept { return 0; }
+        static constexpr unsigned int max() noexcept { return 4294967295U; }
+        static constexpr bool is_integer = true;
+        static constexpr int digits = 32;
+    };
+    
+    template<> struct numeric_limits<size_t> {
+        static constexpr size_t min() noexcept { return 0; }
+        static constexpr size_t max() noexcept { return (size_t)-1; }
+        static constexpr bool is_integer = true;
+        static constexpr int digits = 64;
+    };
+}
+
+#endif

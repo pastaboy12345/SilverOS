@@ -43,4 +43,7 @@ void    terminal_open(void);
 /* File Browser app */
 void    file_browser_open(const char *path);
 
+/* Ultralight app (HTML renderer) */
+void    ultralight_open(const char *url);
+
 #endif

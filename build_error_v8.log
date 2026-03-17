@@ -1,0 +1,45 @@
+In file included from include/string.h:4,
+                 from /mnt/dev/v8/include/v8-internal.h:10,
+                 from /mnt/dev/v8/include/v8-handle-base.h:8,
+                 from /mnt/dev/v8/include/v8-local-handle.h:13,
+                 from /mnt/dev/v8/include/v8-array-buffer.h:12,
+                 from /mnt/dev/v8/include/v8.h:24,
+                 from runtime/js/../../include/v8_runtime.h:5,
+                 from runtime/js/v8_runtime.cpp:1:
+include/types.h:25:9: warning: ‘NULL’ redefined
+   25 | #define NULL ((void*)0)
+      |         ^~~~
+In file included from /mnt/dev/v8/include/v8.h:18:
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stddef.h:416:9: note: this is the location of the previous definition
+  416 | #define NULL __null
+      |         ^~~~
+include/types.h:27:9: warning: ‘UINT8_MAX’ redefined
+   27 | #define UINT8_MAX  0xFF
+      |         ^~~~~~~~~
+In file included from /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint.h:14,
+                 from /mnt/dev/v8/include/v8.h:19:
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint-gcc.h:107:10: note: this is the location of the previous definition
+  107 | # define UINT8_MAX __UINT8_MAX__
+      |          ^~~~~~~~~
+include/types.h:28:9: warning: ‘UINT16_MAX’ redefined
+   28 | #define UINT16_MAX 0xFFFF
+      |         ^~~~~~~~~~
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint-gcc.h:117:10: note: this is the location of the previous definition
+  117 | # define UINT16_MAX __UINT16_MAX__
+      |          ^~~~~~~~~~
+include/types.h:29:9: warning: ‘UINT32_MAX’ redefined
+   29 | #define UINT32_MAX 0xFFFFFFFF
+      |         ^~~~~~~~~~
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint-gcc.h:127:10: note: this is the location of the previous definition
+  127 | # define UINT32_MAX __UINT32_MAX__
+      |          ^~~~~~~~~~
+include/types.h:30:9: warning: ‘UINT64_MAX’ redefined
+   30 | #define UINT64_MAX 0xFFFFFFFFFFFFFFFFULL
+      |         ^~~~~~~~~~
+/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/stdint-gcc.h:137:10: note: this is the location of the previous definition
+  137 | # define UINT64_MAX __UINT64_MAX__
+      |          ^~~~~~~~~~
+/mnt/dev/v8/include/v8-internal.h:14:10: fatal error: concepts: No such file or directory
+   14 | #include <concepts>
+      |          ^~~~~~~~~~
+compilation terminated.

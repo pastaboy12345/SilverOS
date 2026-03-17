@@ -18,12 +18,17 @@
 #include "../include/framebuffer.h"
 #include "../include/keyboard.h"
 #include "../include/keyboard.h"
+#include "../include/mouse.h"
 #include "../include/console.h"
+#include "../include/desktop.h"
 #include "../include/silverfs.h"
 #include "../include/io.h"
 #include "../include/ata.h"
 #include "../include/rtc.h"
 #include "../include/v8_runtime.h"
+
+/* Implemented in `runtime/js/v8_platform_silver.cpp` */
+extern void* create_silver_platform(void);
 
 extern void (*_init_array_start []) (void);
 extern void (*_init_array_end []) (void);
@@ -130,12 +135,18 @@ void kernel_main(uint64_t multiboot_info_addr, uint64_t magic) {
     kprintf("OK\n");
 
     /* Verify C++ with a test call */
+#if ENABLE_V8
     extern void v8_runtime_test(void);
     v8_runtime_test();
+#endif
 
     /* ---- Phase 6: Input devices ---- */
     kprintf("[INIT] Keyboard...");
     keyboard_init();
+    kprintf("OK\n");
+
+    kprintf("[INIT] Mouse...");
+    mouse_init();
     kprintf("OK\n");
 
     kprintf("[INIT] Enabling interrupts...");
@@ -176,12 +187,43 @@ void kernel_main(uint64_t multiboot_info_addr, uint64_t magic) {
     kprintf("[INIT] User system ready.\n");
 
     /* ---- Phase JS: JS Runtime ---- */
+#if ENABLE_V8 && !ENABLE_DESKTOP
     kprintf("[INIT] V8 Platform...");
     void* v8_platform = create_silver_platform();
     kprintf("OK (addr: %p)\n", v8_platform);
 
+    kprintf("[INIT] V8 Runtime...");
+    void* v8_runtime = create_v8_runtime();
+    kprintf("OK\n");
 
-    /* ---- Phase 10: Kernel Shell ---- */
+    /* ---- Phase 10: JS Shell ---- */
+    kprintf("[BOOT] Starting JS Shell...\n");
+    
+    const char* shell_src = 
+        "println('SilverOS JS Shell Loaded');"
+        "while(true) {"
+        "  print('> ');"
+        "  let line = '';"
+        "  while(true) {"
+        "    let ch = readChar();"
+        "    if (ch == 10 || ch == 13) { println(''); break; }"
+        "    let s = String.fromCharCode(ch);"
+        "    line += s; print(s);"
+        "  }"
+        "  if (line == 'exit') break;"
+        "  println('You typed: ' + line);"
+        "}";
+
+    v8_execute_script(v8_runtime, shell_src, "shell.js");
+#endif
+
+#if ENABLE_DESKTOP
+    serial_printf("\n[INIT] Starting desktop shell...\n");
+    desktop_init();
+    desktop_run();
+#endif
+
+#if !ENABLE_DESKTOP
     serial_printf("\n[INIT] Starting minimal shell...\n");
     
     /* Set up full-screen console */
@@ -245,6 +287,7 @@ void kernel_main(uint64_t multiboot_info_addr, uint64_t magic) {
         fb_swap_buffers();
         hlt();
     }
+#endif
 
     /* Should never reach here */
     serial_printf("[KERNEL] kernel_main returned — halting\n");
