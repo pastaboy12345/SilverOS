@@ -286,7 +286,6 @@ static char term_lines[TERM_MAX_LINES][TERM_MAX_COLS + 1];
 static int  term_line_count = 0;
 static char term_input[TERM_INPUT_MAX];
 static int  term_input_len = 0;
-static int  term_scroll = 0;
 static int  term_window_id = -1;
 #if ENABLE_V8
 static void *term_v8_runtime = NULL;

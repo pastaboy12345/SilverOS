@@ -183,6 +183,7 @@ static void fbrowser_handle_key(int id, char key) {
 void file_browser_open(const char *path) {
     if (fb_window_id >= 0 && window_get(fb_window_id)) {
         fbrowser_navigate(path ? path : "/");
+        window_focus(fb_window_id);
         return; // Already open, just bring to front / change path
     }
 

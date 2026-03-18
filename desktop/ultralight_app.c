@@ -132,6 +132,7 @@ static void ul_click_handler(int id, int mx, int my) {
 
 void web_app_open(const char* url) {
   if (ul_window_id >= 0 && window_get(ul_window_id)) {
+    window_focus(ul_window_id);
     return;
   }
 
