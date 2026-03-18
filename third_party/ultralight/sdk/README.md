@@ -4,6 +4,15 @@ Ultralight is a lightweight, universal web renderer for C++.
 
 Please visit our [website](https://ultralig.ht) for licensing information.
 
+## Note for SilverOS / freestanding ports
+
+This SDK package is a desktop binary distribution. In this tree, the engine itself is shipped as
+prebuilt shared libraries in `bin/`, while the C/C++ source files are limited to samples and tools.
+
+If you are targeting a freestanding OS such as SilverOS, this package is not enough for a native
+port by itself. A real port requires engine source code or a vendor-provided static/freestanding
+build of `Ultralight`, `UltralightCore`, `WebCore`, and `AppCore`.
+
 ## Prerequisites
 
 Before building the Ultralight SDK, ensure you have the following:

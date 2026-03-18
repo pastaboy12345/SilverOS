@@ -31,6 +31,8 @@ ULTRA_SDK = third_party/ultralight/sdk
 ULTRA_BIN = $(abspath $(ULTRA_SDK))/bin
 ULTRA_CAPTURE_TOOL = $(BUILD)/ultralight_capture_frame
 ULTRA_CAPTURE_HEADER = runtime/ultralight/generated_ultralight_frame.h
+WEBKIT_DIR = WebKit
+WEBKIT_BUILD = $(BUILD)/webkit-silveros
 
 # Source files
 ASM_SOURCES = boot/boot.asm kernel/isr.asm kernel/gdt_idt_flush.asm
@@ -43,7 +45,7 @@ C_SOURCES   = kernel/kernel.c kernel/string.c kernel/serial.c \
               runtime/platform/platform.c \
     runtime/libc/stdio.c runtime/libc/errno.c \
     runtime/libc/sys/mman.c \
-              net/net.c net/ethernet.c net/arp.c net/ipv4.c net/icmp.c \
+              net/net.c net/ethernet.c net/arp.c net/ipv4.c net/icmp.c net/udp.c \
               fs/silverfs.c \
               desktop/desktop.c desktop/filebrowser.c \
               desktop/ultralight_app.c \
@@ -68,12 +70,13 @@ DISK     = $(BUILD)/disk.svd
 MKFS     = $(BUILD)/mkfs_svd
 HOST_CC  = gcc
 HOST_CXX = g++
+CMAKE   ?= cmake
 
 # ============================================================================
 # Targets
 # ============================================================================
 
-.PHONY: all clean run iso disk usb
+.PHONY: all clean run iso disk usb webkit-silveros-configure webkit-silveros-jsc
 
 all: $(KERNEL) $(DISK)
 
@@ -112,6 +115,21 @@ $(ULTRA_CAPTURE_HEADER): $(ULTRA_CAPTURE_TOOL)
 	LD_LIBRARY_PATH=$(ULTRA_BIN):$$LD_LIBRARY_PATH \
 	$(ULTRA_CAPTURE_TOOL) $(abspath $@) $(abspath $(ULTRA_SDK))
 	@echo "==> Generated Ultralight frame header: $@"
+
+webkit-silveros-configure:
+	$(CMAKE) -S $(WEBKIT_DIR) -B $(WEBKIT_BUILD) \
+		-DPORT=SilverOS \
+		-DENABLE_WEBCORE=OFF \
+		-DENABLE_WEBKIT=OFF \
+		-DENABLE_WEBKIT_LEGACY=OFF \
+		-DENABLE_WEBINSPECTORUI=OFF \
+		-DENABLE_API_TESTS=OFF \
+		-DENABLE_JAVASCRIPT_SHELL=OFF
+	@echo "==> Configured WebKit SilverOS bootstrap port: $(WEBKIT_BUILD)"
+
+webkit-silveros-jsc: webkit-silveros-configure
+	$(CMAKE) --build $(WEBKIT_BUILD) --target JavaScriptCore
+	@echo "==> Built JavaScriptCore for the WebKit SilverOS bootstrap port"
 
 # Create SVD Disk
 $(DISK): $(MKFS)
@@ -182,11 +200,6 @@ $(BUILD)/%.o: %.c
 $(BUILD)/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -o $@ $<
-	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -o $@ $<
-
-$(BUILD)/runtime/ultralight/ultralight_host.o: $(ULTRA_CAPTURE_HEADER)
-
 
 # ============================================================================
 # Utility

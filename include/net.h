@@ -52,6 +52,14 @@ typedef struct __attribute__((packed)) {
     uint16_t sequence;
 } icmp_header_t;
 
+// UDP Header (8 bytes)
+typedef struct __attribute__((packed)) {
+    uint16_t src_port;
+    uint16_t dest_port;
+    uint16_t length;
+    uint16_t checksum;
+} udp_header_t;
+
 extern ip_addr_t net_my_ip;
 extern mac_addr_t net_bcast_mac;
 
@@ -77,6 +85,8 @@ int arp_resolve(ip_addr_t ip, mac_addr_t *out_mac);
 
 void ipv4_handle_packet(void *data, uint16_t len);
 void ipv4_send(ip_addr_t dest, uint8_t proto, void *payload, uint16_t payload_len);
+void udp_handle_packet(ipv4_header_t *ip_hdr, void *data, uint16_t len);
+void udp_send(ip_addr_t dest, uint16_t src_port, uint16_t dest_port, const void *payload, uint16_t payload_len);
 
 void icmp_handle_packet(ipv4_header_t *ip_hdr, void *data, uint16_t len);
 void icmp_send_echo_request(ip_addr_t ip);

@@ -7,7 +7,7 @@
 
 static int ul_window_id = -1;
 static void* ul_view = NULL;
-static char ul_url[256] = "file:///home/user/index.html";
+static char ul_url[256] = SILVEROS_WEB_APP_URL;
 
 static void ul_draw_multiline(int x, int y, const char* text, uint32_t color) {
   char line[96];
@@ -51,14 +51,13 @@ static void ul_blit_scaled_argb(int dx, int dy, int dw, int dh, const uint32_t* 
 
 static void ul_draw_status_overlay(int x, int y, int w) {
   int panel_h = 76;
+  const char* mode = ul_host_is_available() ? "Mode: WebKit renderer active" : "Mode: WebKit renderer bootstrapping";
 
   fb_fill_rect(x + 8, y + 8, w - 16, panel_h, RGB(9, 14, 23));
   fb_draw_rect(x + 8, y + 8, w - 16, panel_h, RGB(61, 85, 116));
-  font_draw_string(x + 18, y + 18, "Ultralight SDK Compatibility Mode", RGB(233, 240, 250));
+  font_draw_string(x + 18, y + 18, "SilverOS Web App", RGB(233, 240, 250));
   font_draw_string(x + 18, y + 36, ul_url, RGB(143, 174, 217));
-  if (!ul_host_is_available()) {
-    font_draw_string(x + 18, y + 56, "SDK frame is unavailable.", RGB(255, 189, 116));
-  }
+  font_draw_string(x + 18, y + 56, mode, ul_host_is_available() ? RGB(164, 220, 176) : RGB(255, 189, 116));
 }
 
 static void ul_draw(int id) {
@@ -131,7 +130,7 @@ static void ul_click_handler(int id, int mx, int my) {
   ul_host_mouse_button(ul_view, 1, false);
 }
 
-void ultralight_open(const char* url) {
+void web_app_open(const char* url) {
   if (ul_window_id >= 0 && window_get(ul_window_id)) {
     return;
   }
@@ -148,7 +147,7 @@ void ultralight_open(const char* url) {
 
   ul_host_init();
 
-  ul_window_id = window_create("Ultralight", 140, 90, 700, 500);
+  ul_window_id = window_create("Web App", 140, 90, 700, 500);
   if (ul_window_id < 0) {
     return;
   }
@@ -165,4 +164,8 @@ void ultralight_open(const char* url) {
   window_set_draw_callback(ul_window_id, ul_draw);
   window_set_key_callback(ul_window_id, ul_key_handler);
   window_set_click_callback(ul_window_id, ul_click_handler);
+}
+
+void ultralight_open(const char* url) {
+  web_app_open(url);
 }

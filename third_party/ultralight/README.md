@@ -21,13 +21,29 @@ With at least:
 - `sdk/lib/` (Ultralight libraries)
 - `sdk/resources/` (Ultralight resources, eg. ICU/dat files if included)
 
-### Note on feasibility
+### SilverOS status
 
-SilverOS is a freestanding kernel. The current repo integration wires an Ultralight
-app into the SilverOS desktop and exposes a status panel in the OS, but the vendored
-Linux SDK still cannot execute directly inside the kernel.
+SilverOS is a freestanding kernel and cannot directly execute the vendored Linux
+Ultralight runtime in-kernel from this package.
 
-To get real HTML rendering inside SilverOS, we will need one of:
+What is in this SDK drop:
 
-- a dedicated host bridge that renders with Ultralight in userspace and streams frames/input
-- a custom port of the runtime dependencies needed by Ultralight for bare-metal execution
+- headers under `sdk/include/`
+- prebuilt Linux shared libraries under `sdk/bin/`
+- samples and tools source code
+
+What is not in this SDK drop:
+
+- engine source for `Ultralight`, `UltralightCore`, `WebCore`, or `AppCore`
+- a freestanding/static SilverOS build of those libraries
+
+That means a real SilverOS port requires new vendor artifacts:
+
+1. Ultralight engine source, or
+2. a static/freestanding build provided by Ultralight for SilverOS-like targets.
+
+The SilverOS desktop app now reports this limitation directly instead of pretending native support exists.
+
+### Optional host-side experiments
+
+`tools/ultralight_capture_frame.cpp` can still be used for host-side rendering experiments, but it is not a native SilverOS port.

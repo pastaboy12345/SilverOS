@@ -38,8 +38,7 @@ static void rtl8139_handler(struct interrupt_frame *frame) {
             uint16_t packet_len = rx_length - 4; // Length includes Ethernet CRC (4 bytes)
             
             // Forward physical packet to Networking Layer
-            // Uncomment once net_receive_packet is implemented
-            // net_receive_packet(packet, packet_len);
+            net_receive_packet(packet, packet_len);
             
             rx_cur = (rx_cur + rx_length + 4 + 3) & ~3; // Align to 4 bytes
             if (rx_cur >= 8192) {

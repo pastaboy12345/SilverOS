@@ -5,12 +5,15 @@
 #include "../include/keyboard.h"
 #include "../include/timer.h"
 #include "../include/string.h"
+#include "../include/heap.h"
 #include "../include/serial.h"
 #include "../include/silverfs.h"
 #include "../include/io.h"
 #include "../include/rtc.h"
 #include "../include/net.h"
 #include "../include/rtl8139.h"
+#include "../include/v8_runtime.h"
+#include "../runtime/libc/stdio.h"
 
 /* ============================================================
  * Color Theme
@@ -126,7 +129,7 @@ window_t *window_get(int id) {
     return NULL;
 }
 
-static void focus_window(int id) {
+void window_focus(int id) {
     if (id < 0 || id >= MAX_WINDOWS || !windows[id].visible) return;
 
     /* Remove from z-order */
@@ -285,6 +288,9 @@ static char term_input[TERM_INPUT_MAX];
 static int  term_input_len = 0;
 static int  term_scroll = 0;
 static int  term_window_id = -1;
+#if ENABLE_V8
+static void *term_v8_runtime = NULL;
+#endif
 
 static void term_add_line(const char *line) {
     if (term_line_count < TERM_MAX_LINES) {
@@ -298,6 +304,98 @@ static void term_add_line(const char *line) {
         strncpy(term_lines[TERM_MAX_LINES - 1], line, TERM_MAX_COLS);
     }
 }
+
+static void term_show_webapp_info(void) {
+    term_add_line("Renderer: WebKit + JavaScriptCore");
+    term_add_line("Command: webapp");
+    term_add_line("Entry: /home/user/webapp/index.html");
+    term_add_line("React src: /home/user/webapp/src/main.jsx");
+    term_add_line("Bundle: /home/user/webapp/app.js");
+#if ENABLE_V8
+    term_add_line("Native: /home/user/webapp/native.js (V8 enabled)");
+#else
+    term_add_line("Native: /home/user/webapp/native.js (V8 disabled)");
+#endif
+}
+
+#if ENABLE_V8
+static bool term_ensure_native_runtime(void) {
+    if (term_v8_runtime) {
+        return true;
+    }
+
+    term_v8_runtime = create_v8_runtime();
+    return term_v8_runtime != NULL;
+}
+
+static void term_run_native_script(const char *path) {
+    silverfs_inode_t inode;
+    silverfs_file_t file;
+    char *source = NULL;
+    char line[TERM_MAX_COLS + 1];
+    int bytes_read = 0;
+
+    if (!path || !path[0]) {
+        path = SILVEROS_WEB_APP_NATIVE_SCRIPT_PATH;
+    }
+
+    if (silverfs_stat(path, &inode) < 0) {
+        snprintf(line, sizeof(line), "native: file not found: %s", path);
+        term_add_line(line);
+        return;
+    }
+
+    if (inode.type != SILVERFS_TYPE_FILE) {
+        snprintf(line, sizeof(line), "native: not a file: %s", path);
+        term_add_line(line);
+        return;
+    }
+
+    source = (char *)kmalloc((size_t)inode.size + 1);
+    if (!source) {
+        term_add_line("native: out of memory");
+        return;
+    }
+
+    if (silverfs_open(path, &file) < 0) {
+        kfree(source);
+        snprintf(line, sizeof(line), "native: failed to open: %s", path);
+        term_add_line(line);
+        return;
+    }
+
+    bytes_read = silverfs_read(&file, source, inode.size);
+    silverfs_close(&file);
+    if (bytes_read < 0) {
+        kfree(source);
+        snprintf(line, sizeof(line), "native: failed to read: %s", path);
+        term_add_line(line);
+        return;
+    }
+
+    source[bytes_read] = '\0';
+
+    if (!term_ensure_native_runtime()) {
+        kfree(source);
+        term_add_line("native: failed to initialize V8 runtime");
+        return;
+    }
+
+    if (v8_execute_script(term_v8_runtime, source, path)) {
+        snprintf(line, sizeof(line), "native: executed %s", path);
+    } else {
+        snprintf(line, sizeof(line), "native: execution failed: %s", path);
+    }
+
+    kfree(source);
+    term_add_line(line);
+}
+#else
+static void term_run_native_script(const char *path) {
+    (void)path;
+    term_add_line("native: V8 runtime is not enabled in this build");
+}
+#endif
 
 static void term_process_command(const char *cmd) {
     if (strlen(cmd) == 0) {
@@ -315,6 +413,9 @@ static void term_process_command(const char *cmd) {
         term_add_line("  mkdir d  - Create directory");
         term_add_line("  touch f  - Create file");
         term_add_line("  write f  - Write to file");
+        term_add_line("  webapp   - Open the seeded Web App");
+        term_add_line("  webinfo  - Show WebKit/React/V8 paths");
+        term_add_line("  native f - Run a native V8 script");
         term_add_line("  uname    - System information");
         term_add_line("  free     - Memory information");
         term_add_line("  date     - Show hardware date/time");
@@ -369,6 +470,15 @@ static void term_process_command(const char *cmd) {
         }
     } else if (strncmp(cmd, "echo ", 5) == 0) {
         term_add_line(cmd + 5);
+    } else if (strcmp(cmd, "webapp") == 0) {
+        web_app_open(SILVEROS_WEB_APP_URL);
+        term_add_line("Opened SilverOS Web App");
+    } else if (strcmp(cmd, "webinfo") == 0) {
+        term_show_webapp_info();
+    } else if (strcmp(cmd, "native") == 0) {
+        term_run_native_script(SILVEROS_WEB_APP_NATIVE_SCRIPT_PATH);
+    } else if (strncmp(cmd, "native ", 7) == 0) {
+        term_run_native_script(cmd + 7);
     } else if (strcmp(cmd, "ls") == 0 || strncmp(cmd, "ls ", 3) == 0) {
         const char *path = "/";
         if (strncmp(cmd, "ls ", 3) == 0 && strlen(cmd) > 3) path = cmd + 3;
@@ -509,7 +619,7 @@ static void term_key_handler(int id, char key) {
 
 void terminal_open(void) {
     if (term_window_id >= 0 && window_get(term_window_id)) {
-        focus_window(term_window_id);
+        window_focus(term_window_id);
         return;
     }
 
@@ -552,7 +662,7 @@ static void draw_menu(void) {
     fb_draw_rect(mx, my, mw, mh, TASKBAR_BORDER);
 
     /* Menu items */
-    const char *items[] = {"File Browser", "Terminal", "Ultralight", "About", "---", "Shutdown"};
+    const char *items[] = {"File Browser", "Terminal", "Web App", "About", "---", "Shutdown"};
     int item_count = 6;
 
     for (int i = 0; i < item_count; i++) {
@@ -580,8 +690,8 @@ static void handle_menu_click(int mx, int my) {
                 terminal_open();
                 menu_open = false;
                 break;
-            case 2: /* Ultralight */
-                ultralight_open("file:///home/user/index.html");
+            case 2: /* Web App */
+                web_app_open(SILVEROS_WEB_APP_URL);
                 menu_open = false;
                 break;
             case 3: /* About */
@@ -732,6 +842,8 @@ void desktop_init(void) {
     /* Create some default files in SilverFS */
     silverfs_mkdir("/home");
     silverfs_mkdir("/home/user");
+    silverfs_mkdir("/home/user/webapp");
+    silverfs_mkdir("/home/user/webapp/src");
     silverfs_mkdir("/etc");
     silverfs_mkdir("/tmp");
 
@@ -740,12 +852,12 @@ void desktop_init(void) {
                               "Welcome to SilverOS!\n"
                               "This is your home directory.\n"
                               "Type 'help' in the terminal for commands.");
-    ensure_file_with_contents("/home/user/index.html",
+    ensure_file_with_contents(SILVEROS_WEB_APP_INDEX_PATH,
                               "<!doctype html>\n"
                               "<html>\n"
                               "<head>\n"
                               "  <meta charset=\"utf-8\">\n"
-                              "  <title>SilverOS Browser</title>\n"
+                              "  <title>SilverOS Web App</title>\n"
                               "  <style>\n"
                               "    :root { color-scheme: dark; }\n"
                               "    body {\n"
@@ -765,6 +877,17 @@ void desktop_init(void) {
                               "      border: 1px solid rgba(143, 188, 255, 0.25);\n"
                               "      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);\n"
                               "    }\n"
+                              "    .eyebrow {\n"
+                              "      display: inline-block;\n"
+                              "      margin-bottom: 12px;\n"
+                              "      padding: 4px 10px;\n"
+                              "      border-radius: 999px;\n"
+                              "      background: rgba(110, 182, 255, 0.16);\n"
+                              "      color: #b7d8ff;\n"
+                              "      font-size: 12px;\n"
+                              "      letter-spacing: 0.08em;\n"
+                              "      text-transform: uppercase;\n"
+                              "    }\n"
                               "    h1 { margin: 0 0 12px; font-size: 40px; }\n"
                               "    p { line-height: 1.6; color: #d5ddea; }\n"
                               "    code {\n"
@@ -775,17 +898,83 @@ void desktop_init(void) {
                               "  </style>\n"
                               "</head>\n"
                               "<body>\n"
-                              "  <section class=\"card\">\n"
-                              "    <h1>SilverOS + Ultralight</h1>\n"
-                              "    <p>If this page renders inside SilverOS, the Ultralight bridge is working.</p>\n"
-                              "    <p>Default path: <code>file:///home/user/index.html</code></p>\n"
-                              "    <p id=\"time\">Boot page ready.</p>\n"
-                              "  </section>\n"
-                              "  <script>\n"
-                              "    document.getElementById('time').textContent = 'Generated at ' + new Date().toString();\n"
-                              "  </script>\n"
+                              "  <div id=\"root\"></div>\n"
+                              "  <script src=\"app.js\"></script>\n"
                               "</body>\n"
                               "</html>\n");
+    ensure_file_with_contents(SILVEROS_WEB_APP_BUNDLE_PATH,
+                              "(function () {\n"
+                              "  var root = document.getElementById('root');\n"
+                              "  if (!root) return;\n"
+                              "  var now = new Date().toString();\n"
+                              "  root.innerHTML = '' +\n"
+                              "    '<section class=\"card\">' +\n"
+                              "    '<span class=\"eyebrow\">WebKit + JSC</span>' +\n"
+                              "    '<h1>SilverOS Web App</h1>' +\n"
+                              "    '<p>This is the seeded web-app entry SilverOS will hand to the WebKit renderer.</p>' +\n"
+                              "    '<p>Page JavaScript runs on JavaScriptCore inside WebKit. Replace <code>app.js</code> with your bundled React output.</p>' +\n"
+                              "    '<p>Your React source entry lives at <code>/home/user/webapp/src/main.jsx</code>.</p>' +\n"
+                              "    '<p>The native companion script is <code>/home/user/webapp/native.js</code> and is reserved for the separate V8 runtime.</p>' +\n"
+                              "    '<p>Boot timestamp: <code>' + now + '</code></p>' +\n"
+                              "    '</section>';\n"
+                              "}());\n");
+    ensure_file_with_contents(SILVEROS_WEB_APP_REACT_ENTRY_PATH,
+                              "/*\n"
+                              " * SilverOS React entry point.\n"
+                              " * Bundle this file into /home/user/webapp/app.js for the WebKit renderer.\n"
+                              " */\n"
+                              "\n"
+                              "const App = () => React.createElement(\n"
+                              "  'section',\n"
+                              "  { className: 'card' },\n"
+                              "  React.createElement('span', { className: 'eyebrow' }, 'React + WebKit'),\n"
+                              "  React.createElement('h1', null, 'SilverOS React App'),\n"
+                              "  React.createElement(\n"
+                              "    'p',\n"
+                              "    null,\n"
+                              "    'This UI runs inside WebKit on JavaScriptCore. Native OS scripting stays in V8.'\n"
+                              "  )\n"
+                              ");\n"
+                              "\n"
+                              "const root = document.getElementById('root');\n"
+                              "if (root && window.ReactDOM && ReactDOM.createRoot) {\n"
+                              "  ReactDOM.createRoot(root).render(React.createElement(App));\n"
+                              "}\n");
+    ensure_file_with_contents(SILVEROS_WEB_APP_NATIVE_SCRIPT_PATH,
+                              "println('SilverOS native web app companion');\n"
+                              "println('This script is meant for the separate V8 runtime, not the WebKit page runtime.');\n"
+                              "println(os.version());\n");
+    ensure_file_with_contents("/home/user/webapp/README.txt",
+                              "SilverOS Web App Layout\n"
+                              "=======================\n"
+                              "\n"
+                              "Renderer path:\n"
+                              "  /home/user/webapp/index.html\n"
+                              "\n"
+                              "Page JavaScript engine:\n"
+                              "  JavaScriptCore inside WebKit\n"
+                              "\n"
+                              "React source entry:\n"
+                              "  /home/user/webapp/src/main.jsx\n"
+                              "\n"
+                              "Bundled page output:\n"
+                              "  /home/user/webapp/app.js\n"
+                              "\n"
+                              "Native OS script entry:\n"
+                              "  /home/user/webapp/native.js\n"
+                              "\n"
+                              "Desktop terminal commands:\n"
+                              "  webapp, webinfo, native [file]\n"
+                              "\n"
+                              "Use V8 for native SilverOS scripting and WebKit/JSC for DOM rendering.\n");
+    ensure_file_with_contents("/home/user/index.html",
+                              "<!doctype html>\n"
+                              "<meta charset=\"utf-8\">\n"
+                              "<title>SilverOS Compatibility Page</title>\n"
+                              "<body style=\"font-family:sans-serif;background:#0c1325;color:#f4f7fb;padding:32px\">\n"
+                              "  <h1>SilverOS Web App moved</h1>\n"
+                              "  <p>Open <code>file:///home/user/webapp/index.html</code> for the WebKit-targeted app entry.</p>\n"
+                              "</body>\n");
 
     serial_printf("[DESKTOP] Initializing Login Screen...\n");
 
@@ -838,7 +1027,7 @@ void desktop_run(void) {
                     int btn_x = 100;
                     for (int i = 0; i < order_count; i++) {
                         if (ms.x >= btn_x && ms.x < btn_x + 120) {
-                            focus_window(window_order[i]);
+                            window_focus(window_order[i]);
                             break;
                         }
                         btn_x += 126;
@@ -880,7 +1069,7 @@ void desktop_run(void) {
                             win->handle_click(win->id, ms.x, ms.y);
                         }
 
-                        focus_window(win->id);
+                        window_focus(win->id);
                         hit = true;
                         break;
                     }

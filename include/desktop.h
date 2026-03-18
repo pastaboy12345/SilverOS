@@ -9,6 +9,13 @@
 #define WINDOW_BORDER 2
 #define CLOSE_BTN_SIZE 16
 
+/* Seeded desktop web app layout */
+#define SILVEROS_WEB_APP_URL "file:///home/user/webapp/index.html"
+#define SILVEROS_WEB_APP_INDEX_PATH "/home/user/webapp/index.html"
+#define SILVEROS_WEB_APP_BUNDLE_PATH "/home/user/webapp/app.js"
+#define SILVEROS_WEB_APP_REACT_ENTRY_PATH "/home/user/webapp/src/main.jsx"
+#define SILVEROS_WEB_APP_NATIVE_SCRIPT_PATH "/home/user/webapp/native.js"
+
 typedef struct {
     int      x, y;
     int      width, height;
@@ -32,6 +39,7 @@ void    desktop_run(void);
 /* Window manager API */
 int     window_create(const char *title, int x, int y, int w, int h);
 void    window_destroy(int id);
+void    window_focus(int id);
 void    window_set_draw_callback(int id, void (*draw)(int));
 void    window_set_key_callback(int id, void (*handler)(int, char));
 void    window_set_click_callback(int id, void (*handler)(int, int, int));
@@ -43,7 +51,10 @@ void    terminal_open(void);
 /* File Browser app */
 void    file_browser_open(const char *path);
 
-/* Ultralight app (HTML renderer) */
+/* Web App (WebKit/JSC renderer path) */
+void    web_app_open(const char *url);
+
+/* Compatibility alias for the older launcher name. */
 void    ultralight_open(const char *url);
 
 #endif

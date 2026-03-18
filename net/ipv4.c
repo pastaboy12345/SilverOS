@@ -2,6 +2,9 @@
 #include "../include/serial.h"
 
 void ipv4_handle_packet(void *data, uint16_t len) {
+    uint16_t total_length;
+    uint16_t payload_len;
+
     if (len < sizeof(ipv4_header_t)) return;
     ipv4_header_t *ip = (ipv4_header_t *)data;
     
@@ -9,15 +12,20 @@ void ipv4_handle_packet(void *data, uint16_t len) {
     
     uint8_t ihl_bytes = ip->ihl * 4;
     if (len < ihl_bytes) return;
+    total_length = ntohs(ip->total_length);
+    if (total_length < ihl_bytes) return;
+    if (total_length > len) total_length = len;
+    payload_len = total_length - ihl_bytes;
     
     if (ip->dest_ip[0] == net_my_ip[0] && ip->dest_ip[1] == net_my_ip[1] &&
         ip->dest_ip[2] == net_my_ip[2] && ip->dest_ip[3] == net_my_ip[3]) {
         
         void *payload = (uint8_t *)data + ihl_bytes;
-        uint16_t payload_len = ntohs(ip->total_length) - ihl_bytes;
         
         if (ip->proto == 1) { // ICMP
             icmp_handle_packet(ip, payload, payload_len);
+        } else if (ip->proto == 17) { // UDP
+            udp_handle_packet(ip, payload, payload_len);
         }
     }
 }
